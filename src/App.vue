@@ -120,8 +120,8 @@
                 {{ t.name.toUpperCase() }} - USD
               </dt>
               <dd class="mt-1 text-3xl font-semibold text-gray-900">
-                {{ formatPrice(t.price) }}
-                <!-- {{ formatPrice(t.priceSecond) }} -->
+                {{ formatPrice(t.priceFirst) }}
+                {{ formatPrice(t.priceSecond) }}
               </dd>
             </div>
             <div class="w-full border-t border-gray-200"></div>
@@ -243,9 +243,17 @@ export default {
     if (tickersData) {
       this.tickers = JSON.parse(tickersData);
       this.tickers.forEach((ticker) => {
-        subscribeToTicker(ticker.name, (newPrice, errorStatus) => {
-          this.updateTicker(ticker.name, newPrice, errorStatus);
-        });
+        subscribeToTicker(
+          ticker.name,
+          (fromBTCtoUSD, fromKOBOtoUSD, errorStatus) => {
+            this.updateTicker(
+              ticker.name,
+              fromBTCtoUSD,
+              fromKOBOtoUSD,
+              errorStatus
+            );
+          }
+        );
       });
     }
     //* This в нативном JS здесь был бы потерян, чтобы не потерять
@@ -335,18 +343,18 @@ export default {
         })
         .slice(0, 4);
     },
-    updateTicker(tickerName, price, errorStatus) {
+    updateTicker(tickerName, fromKOBOtoBTC, fromBTCtoUSD, errorStatus) {
+      // console.log(this.tickers.filter((t) => t.name === tickerName));
       this.tickers
         .filter((t) => t.name === tickerName)
         .forEach((t) => {
-          // if (fromBTCtoUSD) {
-          //   t.priceSecond = fromBTCtoUSD;
-          // }
-          // if (fromKOBOtoBTC) {
-          //   t.priceFirst = fromKOBOtoBTC;
-          // }
-          this.graph.push(price);
-          t.price = price;
+          if (fromBTCtoUSD) {
+            t.priceSecond = fromBTCtoUSD;
+            this.graph.push(fromBTCtoUSD);
+          }
+          if (fromKOBOtoBTC) {
+            t.priceFirst = fromKOBOtoBTC;
+          }
           t.errorStatus = errorStatus;
         });
     },
@@ -361,8 +369,15 @@ export default {
       this.filter = "";
       this.ticker = "";
       this.tickers = [...this.tickers, currentTicker];
-      subscribeToTicker(currentTicker.name, (newPrice, errorStatus) =>
-        this.updateTicker(currentTicker.name, newPrice, errorStatus)
+      subscribeToTicker(
+        currentTicker.name,
+        (fromKOBOtoUSD, fromBTCtoUSD, errorStatus) =>
+          this.updateTicker(
+            currentTicker.name,
+            fromKOBOtoUSD,
+            fromBTCtoUSD,
+            errorStatus
+          )
       );
     },
     addTickerByAutocomplete(tickerName) {

@@ -9,8 +9,7 @@ const socket = new WebSocket(
 
 const AGGREGATE_INDEX = "5";
 
-// const tickers = [];
-// let currentTicker;
+let tickers = [];
 
 socket.addEventListener("message", (e) => {
   const {
@@ -20,28 +19,25 @@ socket.addEventListener("message", (e) => {
   } = JSON.parse(e.data);
   console.log(JSON.parse(e.data));
 
-  // let fromKOBOtoBTC;
-  // let fromBTCtoUSD;
+  let fromKOBOtoBTC;
+  let fromBTCtoUSD;
 
-  // if (currency !== "BTC" && currency) {
-  //   if (!tickers.find((t) => t === currency)) {
-  //     tickers.push(currency);
-  //   }
-  //   currentTicker = tickers.find((t) => t === currency);
-  //   fromKOBOtoBTC = newPrice;
-  // }
+  if (currency !== "BTC" && currency) {
+    fromKOBOtoBTC = newPrice;
+    tickers = [...tickersHandlers.get(currency)];
+  }
 
-  // if (currency === "BTC") {
-  //   fromBTCtoUSD = newPrice;
-  // }
+  if (currency === "BTC") {
+    fromBTCtoUSD = newPrice;
+    tickers = [...tickersHandlers.values()].flat();
+  }
 
-  if (type !== AGGREGATE_INDEX || newPrice === undefined) return;
+  if (type !== AGGREGATE_INDEX) return;
 
   const errorStatus = false;
 
-  const handlers = tickersHandlers.get(currency) ?? [];
-  handlers.forEach((fn) => {
-    fn(newPrice, errorStatus);
+  tickers.forEach((fn) => {
+    fn(fromKOBOtoBTC, fromBTCtoUSD, errorStatus);
   });
 });
 
@@ -62,27 +58,23 @@ function sendToWebSocket(message) {
 }
 
 function subscribeToTickerOnWs(tickerName) {
-  // if (tickers.length) {
-  //   sendToWebSocket({
-  //     action: "SubAdd",
-  //     subs: [`5~CCCAGG~${tickerName}~BTC`],
-  //   });
-  // } else {
-  //   sendToWebSocket({
-  //     action: "SubAdd",
-  //     subs: [`5~CCCAGG~${tickerName}~BTC`, `5~CCCAGG~BTC~USD`],
-  //   });
-  // }
-  sendToWebSocket({
-    action: "SubAdd",
-    subs: [`5~CCCAGG~${tickerName}~USD`],
-  });
+  if (tickers.length) {
+    sendToWebSocket({
+      action: "SubAdd",
+      subs: [`5~CCCAGG~${tickerName}~BTC`],
+    });
+  } else {
+    sendToWebSocket({
+      action: "SubAdd",
+      subs: [`5~CCCAGG~${tickerName}~BTC`, `5~CCCAGG~BTC~USD`],
+    });
+  }
 }
 
 function unsubscribeFromTickerOnWs(tickerName) {
   sendToWebSocket({
     action: "SubRemove",
-    subs: [`5~CCCAGG~${tickerName}~USD`],
+    subs: [`5~CCCAGG~${tickerName}~BTC`],
   });
 }
 
